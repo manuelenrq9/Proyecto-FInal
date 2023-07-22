@@ -1,0 +1,250 @@
+---
+title: "Análisis de comercio electrónico - Amazon Sales Report "
+author: "Manuel Tirado, Yoikerth Cadiz, Yorgelis Salgado, Joseph Medrano"
+date: "2023-07-21"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_float: true
+---
+
+## Introducción
+
+El mundo y las empresas siempre están en constante cambio, y ahora más que nunca, la ciencia de datos ha acelerado este proceso. Así como la tecnología constantemente ha cambiado la forma en que las empresas se mueven, los datos han hecho que se pueda tener una mejor visión y un entendimiento más profundo sobre los clientes, productos y los procesos que involucran a un negocio. Es por eso que ahora realizamos este trabajo de ciencia de datos.
+
+El conjunto de datos del informe de ventas de Amazon "Amazon Sale Report" es un recurso valioso que contiene información sobre las ventas de ropa en una tienda digital en la India, la cual usa los servicios de Amazon para vender sus productos. Los datos incluyen el tipo de producto, el tamaño, la fecha de venta, el estado, el método de cumplimiento, la cantidad, el monto, el estado B2B (persona o empresa) y la moneda.
+
+Este estudio utiliza técnicas de ciencia de datos para analizar el conjunto de datos del informe de ventas de Amazon y obtener información sobre los factores que influyen en las ventas de ropa en Amazon India.Esto se puede utilizar con el fin de optimizar las estrategias de negocio del cliente en concreto, y asi mejorar sus ventas y ganancias. El estudio responderá a las siguientes preguntas:
+
+- ¿Qué productos deben ser promovidos para aumentar las ventas? 
+- ¿Qué productos requieren mayor stock? 
+- ¿En qué fechas existen más compradores y cuáles son sus patrones de compra? 
+- ¿Qué productos les interesan más y con cuales características?
+
+
+## Librerias utilizadas
+
+```{r}
+library(gifski)
+library(gganimate)
+library(dplyr)
+library(ggplot2)
+```
+
+## Carga de Datos
+
+```{r}
+amazon_sales = read.csv("Amazon Sale Report.csv")
+amazon_sales$Date <- as.Date(amazon_sales$Date, format = "%m-%d-%y")
+
+amazon_sales$Date <- sort(amazon_sales$Date)
+
+amazon_sales$Year <- format(amazon_sales$Date, "%Y")
+amazon_sales$Month <- format(amazon_sales$Date, "%B")  
+```
+
+
+## Gráfico 1 - Cantidad de ordenes por año y mes
+
+```{r}
+orders_by_month <- amazon_sales %>%
+  group_by(Year, Month) %>%
+  count()%>%
+  arrange(Year, match(Month, month.name))
+
+orders_by_month$Month <- sort(orders_by_month$Month)
+
+ggplot(orders_by_month, aes(x = paste(Year, Month, sep = "-"), y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Cantidad de Ordenes por fecha",
+       x = "fecha",
+       y = "Cantidad de Ordenes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+```
+
+```{r}
+ggplot(orders_by_month, aes(x = "", y = n, fill = Month)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") +
+  labs(title = "Cantidad de ordenes por mes en 2022",
+       fill = "Mes",
+       x = NULL,
+       y = NULL)
+```
+
+
+## Gráfico 2 - Cantidad de ordenes de compra segun el precio
+
+```{r}
+amazon_sales$Price_Category <- cut(amazon_sales$Amount, breaks = c(100, 500, 1000, 1500, Inf), labels = c("Bajo", "Medio", "Alto", "Muy Alto"))
+
+ggplot(amazon_sales, aes(x = Amount)) +
+  geom_histogram(binwidth = 50 , fill = "steelblue") +
+  labs(title = "Distribucion de ordenes de compra segun su precio",
+       x = "Precio",
+       y = "Cantidad de ordenes")
+```
+
+## Gráfico 3 - Categorías mas compradas por fecha
+
+```{r}
+start_date <- as.Date("2022-03-31")
+end_date <- as.Date("2022-06-29")
+filtro_fecha <- amazon_sales[amazon_sales$Date >= start_date & amazon_sales$Date <= end_date, ]
+
+category_counts <- filtro_fecha %>%
+  group_by(Date, Category) %>%
+  summarize(Orders = n())
+
+
+ggplot(category_counts, aes(x = Date, y = Category, size = Orders, color = Orders)) +
+  geom_point() +
+  scale_size_continuous(range = c(5, 15)) +
+  labs(title = "Categorias mas compradas por fecha (2022-03-31 a 2022-06-29)",
+       x = "Fecha",
+       y = "Categoria",
+       size = "Cantidad de ordenes",
+       color = "Cantidad de ordenes")
+```
+
+
+## Gráfico 4 - Ventas por categoria de productos
+
+```{r}
+ggplot(amazon_sales, aes(x = Category, y = Amount)) +
+  geom_point() +
+  labs(title = "Ventas por categoria de productos",
+       x = "Categori de Producto",
+       y = "Monto de Ventas")
+
+ggplot(amazon_sales, aes(x = Category, y = Amount, group = 1)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Ventas por categoria de productos (Grafico de Lineas)",
+       x = "Categoria de Producto",
+       y = "Monto de Ventas")
+```
+
+
+## Gráfico 5 - Tendencia de ventas por estado de la India
+
+```{r}
+state_sales <- amazon_sales %>%
+  group_by(ship.state) %>%
+  summarize(Total_Sales = sum(Amount))
+
+state_sales <- state_sales[complete.cases(state_sales), ]
+
+ggplot(state_sales, aes(x = Total_Sales)) +
+  geom_area(aes(y = ship.state, fill = Total_Sales), alpha = 0.5) +
+  geom_point(aes(y = ship.state), color = "blue", size = 3) +
+  labs(title = "Tendencia de ventas por estado de la India",
+       x = "Ventas Totales",
+       y = "Estado de la India")
+```
+
+## Gráfico 6 - Distribucion de las ventas por tamaño de producto
+
+```{r}
+ggplot(amazon_sales, aes(x = Size, y = Amount)) +
+  geom_boxplot() +
+  labs(title = "Distribucion de las ventas por tamaño de producto",
+       x = "Tamaño de Producto",
+       y = "Ventas")
+```
+
+
+## Gráfico 7 - Cantidad de ordenes de compra por mes
+
+```{r}
+amazon_sales$Date <- as.Date(amazon_sales$Date, format = "%m-%d-%y")
+amazon_sales$YearMonth <- format(amazon_sales$Date, "%Y-%m")
+
+meses <- amazon_sales %>%
+  group_by(YearMonth) %>%
+  summarize(Orders = n())
+
+ggplot(meses, aes(x = YearMonth, y = Orders, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue", size = 3) +
+  labs(title = "Cantidad de ordenes de compra por mes",
+       x = "Mes",
+       y = "Cantidad de ordenes")
+```
+
+## Gráfico 8 - Proporcion de ordenes de compra por estado del courier
+
+```{r}
+data_status <- amazon_sales %>%
+  group_by(Courier.Status) %>%
+  summarize(Orders = n())
+
+data_status[data_status == ""] <- NA
+
+data_status <- na.omit(data_status)
+
+ggplot(data_status, aes(x = Courier.Status, y = Orders, fill = Courier.Status)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Cantidad de ordenes de compra por estado del courier",
+       x = "Estado del Courier",
+       y = "Cantidad de ordenes",
+       fill = "Estado del Courier")
+
+ggplot(data_status, aes(x = "", y = Orders, fill = Courier.Status)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Proporcion de ordenes de compra por estado del courier",
+       x = NULL,
+       y = NULL,
+       fill = "Estado del Courier")
+```
+
+## Gráfico 9 - 
+
+```{r}
+
+data_envio <- amazon_sales %>%
+  group_by(Category) %>%
+  summarize(Orders = n())
+
+
+ggplot(data_envio, aes(x = Category, y = Orders, fill = Category)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Cantidad de ordenes de compra por categoria",
+       x = "Categoria de Envio",
+       y = "Cantidad de ordenes",
+       fill = "Categoria de Envio")
+
+ggplot(data_envio, aes(x = "", y = Orders, fill = Category)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Proporcion de ordenes de compra por categoria de envio",
+       x = NULL,
+       y = NULL,
+       fill = "Categoria de Envio")
+```
+
+## Gráfico 10 - Dispersion de Monto de Venta por Fecha
+
+```{r}
+datos_sin_na <- na.omit(amazon_sales)
+
+
+ggplot(datos_sin_na, aes(x = Date, y = Amount, color = Category)) +
+  geom_point() +
+  labs(title = "Grafico de Dispersion de Monto de Venta por Fecha",
+       x = "Fecha de la Venta",
+       y = "Monto de la Venta",
+       color = "Categoria de Producto") +
+  theme_minimal()
+```
+
+
+## Conclusión 
+
+Pudimos observar a través de la aplicación de la ciencia de datos, información relevante que permite al negocio de Amazon en la India conocer de manera mas profunda su flujo de ventas entre los meses de abril y junio. 
+- Logramos observar que categorías de productos tienen mayor demanda y a su vez cuales categorías generan mayores ingresos para la empresa.
+- Pudimos comprender el flujo de ventas totales a través del tiempo, asi conociendo en cuales meses hay mas compradores.
+- Visualizamos la distribución geográfica de compradores, al conocer que estados del país possen mayor cantidad de compradores
+
