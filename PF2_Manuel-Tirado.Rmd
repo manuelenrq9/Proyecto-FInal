@@ -200,7 +200,7 @@ ggplot(data_status, aes(x = "", y = Orders, fill = Courier.Status)) +
        fill = "Estado del Courier")
 ```
 
-## Gráfico 9 - 
+## Gráfico 9 - Proporcion de ordenes de compra por categoria de envio
 
 ```{r}
 
