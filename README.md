@@ -1,4 +1,4 @@
-# Proyecto-FInal
+# Proyecto-Final
 # Análisis de comercio electrónico - Amazon Sale Report
 
 Integrantes: Manuel Tirado, Yoikerth Cadiz, Joseph Medrano, Yorgelis Salgado
